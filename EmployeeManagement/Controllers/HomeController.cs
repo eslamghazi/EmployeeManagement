@@ -60,13 +60,6 @@ namespace EmployeeManagement.Controllers
         {
             //throw new Exception("Error in Details View");
 
-            logger.LogTrace("Trace Log");
-            logger.LogDebug("Debug Log");
-            logger.LogInformation("Information Log");
-            logger.LogWarning("Warning Log");
-            logger.LogError("Error Log");
-            logger.LogCritical("Critical Log");
-
             int employeeId;
 
             if (id.All(char.IsDigit))
@@ -139,7 +132,7 @@ namespace EmployeeManagement.Controllers
                             "images", model.ExistingPhotoPath);
                         System.IO.File.Delete(filePath);
                     }
-                    employee.PhotoPath = ProcessUploadedFile(model);
+                    employee.PhotoPath = ProcessUploadedFile(null, model);
 
                 }
 
@@ -150,21 +143,33 @@ namespace EmployeeManagement.Controllers
             return View();
         }
 
-        private string ProcessUploadedFile(EmployeeCreateViewModel model)
+        private string ProcessUploadedFile(Employee employee = null, EmployeeCreateViewModel model = null)
         {
             string uniqueFileName = null;
-            if (model.Photo != null)
+            if (model?.Photo != null)
             {
                 string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images");
-                uniqueFileName = Guid.NewGuid().ToString() + "_" + model.Photo.FileName;
+                uniqueFileName = Guid.NewGuid().ToString() + "_" + (model?.Photo?.FileName);
                 string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        model.Photo.CopyTo(fileStream);
+                    }
+                return uniqueFileName;
+            }
+            else
+            {
+                string fullPath = Path.Combine(hostingEnvironment.WebRootPath, "images", employee.PhotoPath);
+                if (System.IO.File.Exists(fullPath))
                 {
-                    model.Photo.CopyTo(fileStream);
+                    System.IO.File.Delete(fullPath);
                 }
+                return fullPath;
+
             }
 
-            return uniqueFileName;
         }
 
         [HttpPost]
@@ -173,7 +178,7 @@ namespace EmployeeManagement.Controllers
         {
             if (ModelState.IsValid)
             {
-                string uniqueFileName = ProcessUploadedFile(model);
+                string uniqueFileName = ProcessUploadedFile(null, model);
 
                 Employee newEmployee = new Employee
                 {
@@ -208,6 +213,8 @@ namespace EmployeeManagement.Controllers
 
             Employee employee = _employeeRepository.GetEmployee(employeeId);
 
+            ProcessUploadedFile(employee, null);
+
             if (employee == null)
             {
                 ViewBag.ErrorMessage = $"User cannot be found";
@@ -216,6 +223,7 @@ namespace EmployeeManagement.Controllers
             else
             {
                 var result = _employeeRepository.Delete(employeeId);
+
                 if (result == null)
                 {
                     ViewBag.ErrorTitle = $"Something went wrong";
