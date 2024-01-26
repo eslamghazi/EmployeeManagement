@@ -6,8 +6,16 @@
 
 http://employeemgmt-001-site1.ltempurl.com/
 
-username:admin@admin.com password:12345
+## Users
 
-User: https://crud-operations-user.vercel.app/
+1- Super Admin:-
 
-username:user@user.com password:12345
+username:superadmin@gmail.com password:Super12345$$
+
+2- Admin:-
+
+username:admin@gmail.com password:Admin12345$$
+
+3- User:-
+
+username:user@gmail.com password:User12345$$

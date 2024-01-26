@@ -3,7 +3,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "https://localhost:44376/",
+      "applicationUrl": "http://employeemgmt-001-site1.ltempurl.com/",
       "sslPort": 44376
     }
   },
@@ -13,14 +13,14 @@
       "launchBrowser": true,
       "environmentVariables": {
         "MyKey": "Value of MyKey from Environment Variable",
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Production"
       }
     },
     "EmployeeManagement": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Production"
       },
       "applicationUrl": "http://localhost:5000"
     }
