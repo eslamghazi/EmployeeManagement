@@ -4,10 +4,13 @@ using EmployeeManagement.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,24 +23,29 @@ namespace EmployeeManagement.Controllers
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IHostingEnvironment hostingEnvironment;
         private readonly ILogger logger;
+        private readonly IAuthorizationService authorizationService;
         private readonly IDataProtector protector;
 
         public HomeController(IEmployeeRepository employeeRepository,
                               IHostingEnvironment hostingEnvironment,
                               ILogger<HomeController> logger,
                               IDataProtectionProvider dataProtectionProvider,
-                              DataProtectionPurposeStrings dataProtectionPurposeStrings)
+                              DataProtectionPurposeStrings dataProtectionPurposeStrings,
+                              IAuthorizationService authorizationService)
         {
             _employeeRepository = employeeRepository;
             this.hostingEnvironment = hostingEnvironment;
             this.logger = logger;
+            this.authorizationService = authorizationService;
             protector = dataProtectionProvider
                 .CreateProtector(dataProtectionPurposeStrings.EmployeeIdRouteValue);
+
         }
 
         [AllowAnonymous]
         public ViewResult Index()
         {
+
             var model = _employeeRepository.GetAllEmployee()
                             .Select(e =>
                             {
@@ -59,7 +67,17 @@ namespace EmployeeManagement.Controllers
             logger.LogError("Error Log");
             logger.LogCritical("Critical Log");
 
-            int employeeId = Convert.ToInt32(protector.Unprotect(id));
+            int employeeId;
+
+            if (id.All(char.IsDigit))
+            {
+                employeeId = int.Parse(id);
+            }
+            else
+            {
+                employeeId = Convert.ToInt32(protector.Unprotect(id));
+            }
+
 
             Employee employee = _employeeRepository.GetEmployee(employeeId);
 
@@ -79,12 +97,15 @@ namespace EmployeeManagement.Controllers
         }
 
         [HttpGet]
+        //[Authorize(Policy = "CreateRolePolicy")]
         public ViewResult Create()
         {
             return View();
         }
 
         [HttpGet]
+        //[Authorize(Policy = "SuperAdminOrAdminRolePolicy")]
+        //[Authorize(Policy = "EditRolePolicy")]
         public ViewResult Edit(int id)
         {
             Employee employee = _employeeRepository.GetEmployee(id);
@@ -100,6 +121,8 @@ namespace EmployeeManagement.Controllers
         }
 
         [HttpPost]
+        //[Authorize(Policy = "SuperAdminOrAdminRolePolicy")]
+        //[Authorize(Policy = "EditRolePolicy")]
         public IActionResult Edit(EmployeeEditViewModel model)
         {
             if (ModelState.IsValid)
@@ -145,6 +168,7 @@ namespace EmployeeManagement.Controllers
         }
 
         [HttpPost]
+        //[Authorize(Policy = "CreateRolePolicy")]
         public IActionResult Create(EmployeeCreateViewModel model)
         {
             if (ModelState.IsValid)
@@ -164,6 +188,44 @@ namespace EmployeeManagement.Controllers
             }
 
             return View();
+        }
+
+        [HttpPost]
+        //[Authorize(Policy = "SuperAdminOrAdminRolePolicy")]
+        //[Authorize(Policy = "DeleteRolePolicy")]
+        public IActionResult Delete(string id)
+        {
+            int employeeId;
+
+            if (id.All(char.IsDigit))
+            {
+                employeeId = int.Parse(id);
+            }
+            else
+            {
+                employeeId = Convert.ToInt32(protector.Unprotect(id));
+            }
+
+            Employee employee = _employeeRepository.GetEmployee(employeeId);
+
+            if (employee == null)
+            {
+                ViewBag.ErrorMessage = $"User cannot be found";
+                return View("NotFound");
+            }
+            else
+            {
+                var result = _employeeRepository.Delete(employeeId);
+                if (result == null)
+                {
+                    ViewBag.ErrorTitle = $"Something went wrong";
+                    ViewBag.ErrorMessage = $"{employee.Name} cannot be deleted";
+                    return View("Error");
+
+                }
+                return RedirectToAction("index");
+            }
+
         }
     }
 }

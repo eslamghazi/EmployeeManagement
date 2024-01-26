@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EmployeeManagement.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -20,4 +21,6 @@ namespace EmployeeManagement.ViewModels
 
         public List<string> Users { get; set; }
     }
+
+
 }

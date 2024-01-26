@@ -1,4 +1,11 @@
-﻿@model IEnumerable<ApplicationUser>
+﻿
+
+@model IEnumerable<ApplicationUser>
+
+@inject SignInManager<ApplicationUser> signInManager;
+
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService authorizationService
 
 @{
     ViewBag.Title = "All Users";
@@ -8,10 +15,14 @@
 
 @if (Model.Any())
 {
-    <a asp-action="Register" asp-controller="Account"
-       class="btn btn-primary mb-3" style="width:auto">
-        Add new user
-    </a>
+
+    @if ((await authorizationService.AuthorizeAsync(User, "CreateRolePolicy")).Succeeded)
+    {
+        <a asp-action="Register" asp-controller="Account"
+           class="btn btn-primary mb-3" style="width:auto">
+            Add new user
+        </a>
+    }
 
     foreach (var user in Model)
     {
@@ -23,21 +34,44 @@
                 <h5 class="card-title">@user.UserName</h5>
             </div>
             <div class="card-footer">
-                <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post">
-                    <a asp-action="EditUser" asp-controller="Administration"
-                       asp-route-id="@user.Id" class="btn btn-primary">Edit</a>
-                    
-                    <span id="confirmDeleteSpan_@user.Id" style="display:none">
-                        <span>Are you sure you want to delete?</span>
-                        <button type="submit" class="btn btn-danger">Yes</button>
-                        <a href="#" class="btn btn-primary"
-                           onclick="confirmDelete('@user.Id', false)">No</a>
-                    </span>
 
-                    <span id="deleteSpan_@user.Id">
-                        <a href="#" class="btn btn-danger"
-                           onclick="confirmDelete('@user.Id', true)">Delete</a>
-                    </span>
+                <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post">
+                    @if (signInManager.IsSignedIn(User) &&
+                        (await authorizationService.AuthorizeAsync(User, "SuperAdminOrAdminRolePolicy")).Succeeded)
+                    {
+
+                        @if ((await authorizationService.AuthorizeAsync(User, "EditRolePolicy")).Succeeded)
+                        {
+
+                            <a asp-action="EditUser" asp-controller="Administration"
+                               asp-route-id="@user.Id" class="btn btn-primary">Edit</a>
+                        }
+
+                        @if ((await authorizationService.AuthorizeAsync(User, "DeleteRolePolicy")).Succeeded)
+                        {
+
+                            <span id="confirmDeleteSpan_@user.Id" style="display:none">
+                                <span>Are you sure you want to delete?</span>
+                                <button type="submit" class="btn btn-danger">Yes</button>
+                                <a class="btn btn-primary text-white"
+                                   onclick="confirmDelete('@user.Id', false)">No</a>
+                            </span>
+
+                            <span id="deleteSpan_@user.Id">
+                                <a class="btn btn-danger text-white"
+                                   onclick="confirmDelete('@user.Id', true)">Delete</a>
+                            </span>
+                        }
+
+                    }
+                    @if ((signInManager.IsSignedIn(User) &&
+                          (await authorizationService.AuthorizeAsync(User, "SuperAdminOrAdminRolePolicy")).Succeeded &&
+                        (!(await authorizationService.AuthorizeAsync(User, "EditRolePolicy")).Succeeded &&
+                        !(await authorizationService.AuthorizeAsync(User, "DeleteRolePolicy")).Succeeded)))
+                        {
+                            <span class="text-danger">You have not any claims in order to do any action.</span>
+                        }
+
                 </form>
             </div>
         </div>
@@ -49,15 +83,18 @@ else
         <div class="card-header">
             No users created yet
         </div>
-        <div class="card-body">
-            <h5 class="card-title">
-                Use the button below to create a user
-            </h5>
-            <a class="btn btn-primary" style="width:auto"
-               asp-controller="Account" asp-action="Register">
-                Add new user
-            </a>
-        </div>
+        @if ((await authorizationService.AuthorizeAsync(User, "CreateRolePolicy")).Succeeded)
+        {
+            <div class="card-body">
+                <h5 class="card-title">
+                    Use the button below to create a user
+                </h5>
+                <a class="btn btn-primary" style="width:auto"
+                   asp-controller="Account" asp-action="Register">
+                    Add new user
+                </a>
+            </div>
+        }
     </div>
 }
 

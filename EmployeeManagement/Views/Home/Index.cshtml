@@ -1,32 +1,69 @@
-﻿@model IEnumerable<Employee>
+﻿@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService authorizationService
+
+@inject SignInManager<ApplicationUser> signInManager;
+
+@model IEnumerable<Employee>
 
 @{
     ViewBag.Title = "Employee List";
 }
 
+@if (Model.Any())
+{
 
-<div class="card-deck">
-    @foreach (var employee in Model)
+    <div class="card-deck">
+        @foreach (var employee in Model)
+        {
+            var photoPath = "~/Images/" + (employee.PhotoPath ?? "noimage.jpg");
+
+            <div class="card m-3" style="min-width: 18rem; max-width:30.5%;">
+                <div class="card-header">
+                    <h3>@employee.Name</h3>
+                </div>
+
+                <img class="card-img-top imageThumbnail" src="@photoPath"
+                     asp-append-version="true" />
+
+                <div class="card-footer text-center">
+                    <a asp-controller="home" asp-action="details"
+                       asp-route-id="@employee.EncryptedId"
+                       class="btn btn-primary m-1">View</a>
+                    @if (signInManager.IsSignedIn(User) &&
+                    (await authorizationService.AuthorizeAsync(User, "SuperAdminOrAdminRolePolicy")).Succeeded ||
+                    (await authorizationService.AuthorizeAsync(User, "EditRolePolicy")).Succeeded)
+
+                    {
+                    <a asp-action="edit" asp-controller="home"
+                       asp-route-id="@employee.Id"
+                       class="btn btn-primary m-1">Edit</a>
+                    }
+                </div>
+            </div>
+        }
+
+
+
+    </div>
+}
+else
+{
+<div class="card">
+    <div class="card-header">
+        No Employees created yet
+    </div>
+    @if ((await authorizationService.AuthorizeAsync(User, "CreateRolePolicy")).Succeeded)
     {
-        var photoPath = "~/Images/" + (employee.PhotoPath ?? "noimage.jpg");
-
-        <div class="card m-3" style="min-width: 18rem; max-width:30.5%;">
-            <div class="card-header">
-                <h3>@employee.Name</h3>
-            </div>
-
-            <img class="card-img-top imageThumbnail" src="@photoPath" 
-                 asp-append-version="true"/>
-
-            <div class="card-footer text-center">
-                <a asp-controller="home" asp-action="details" 
-                   asp-route-id="@employee.EncryptedId"
-                   class="btn btn-primary m-1">View</a>
-                <a asp-action="edit" asp-controller="home"
-                   asp-route-id="@employee.Id"
-                   class="btn btn-primary m-1">Edit</a>
-                <a href="#" class="btn btn-danger m-1">Delete</a>
-            </div>
+        <div class="card-body">
+            <h5 class="card-title">
+                Use the button below to create an Employee
+            </h5>
+            <a class="btn btn-primary" style="width:auto"
+               asp-controller="home" asp-action="create">
+                Add new Employee
+            </a>
         </div>
     }
 </div>
+
+}

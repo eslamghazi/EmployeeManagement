@@ -82,19 +82,30 @@ namespace EmployeeManagement
 
             services.AddAuthorization(options =>
             {
-                options.AddPolicy("DeleteRolePolicy",
-                    policy => policy.RequireClaim("Delete Role"));
+                options.AddPolicy("CreateRolePolicy",
+                    policy => policy.RequireClaim("Create Role", "true"));
 
                 options.AddPolicy("EditRolePolicy",
-                    policy => policy.AddRequirements(new ManageAdminRolesAndClaimsRequirement()));
+                    policy => policy.RequireClaim("Edit Role", "true"));
+
+                options.AddPolicy("DeleteRolePolicy",
+                    policy => policy.RequireClaim("Delete Role", "true"));
+
+                options.AddPolicy("SuperAdminRolePolicy",
+                    policy => policy.RequireRole(Roles.SuperAdmin));
 
                 options.AddPolicy("AdminRolePolicy",
-                    policy => policy.RequireRole("Admin"));
+                    policy => policy.RequireRole(Roles.Admin));
+
+                options.AddPolicy("SuperAdminOrAdminRolePolicy", policy =>
+                    policy.Requirements.Add(new SuperAdminOrAdminRequirement()));
+
             });
 
             services.AddScoped<IEmployeeRepository, SQLEmployeeRepository>();
 
             services.AddSingleton<IAuthorizationHandler, CanEditOnlyOtherAdminRolesAndClaimsHandler>();
+            services.AddSingleton<IAuthorizationHandler, SuperAdminOrAdminHandler>();
             services.AddSingleton<IAuthorizationHandler, SuperAdminHandler>();
             services.AddSingleton<DataProtectionPurposeStrings>();
         }

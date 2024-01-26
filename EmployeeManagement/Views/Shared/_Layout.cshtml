@@ -1,4 +1,7 @@
-﻿@inject SignInManager<ApplicationUser> signInManager;
+﻿@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService authorizationService
+
+@inject SignInManager<ApplicationUser> signInManager
 
 <html>
 <head>
@@ -30,7 +33,7 @@
     <title>@ViewBag.Title</title>
 </head>
 <body>
-    <div class="container">
+    <div>
         <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
             <a class="navbar-brand" asp-action="index" asp-controller="home">
                 <img src="~/images/employees.png" height="30" width="30" />
@@ -43,13 +46,18 @@
                     <li class="nav-item">
                         <a asp-action="index" asp-controller="home" class="nav-link">List</a>
                     </li>
-                    <li class="nav-item">
-                        <a asp-action="create" asp-controller="home" class="nav-link">Create</a>
-                    </li>
-                    @*@if (signInManager.IsSignedIn(User) && User.IsInRole("Admin"))
-                    {*@
+
+                    @if (signInManager.IsSignedIn(User))
+                    {
+                        <li class="nav-item">
+                            <a asp-action="create" asp-controller="home" class="nav-link">Create</a>
+                        </li>
+                    }
+                    @if (signInManager.IsSignedIn(User) &&
+                       (await authorizationService.AuthorizeAsync(User, "SuperAdminOrAdminRolePolicy")).Succeeded)
+                    {
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink"
+                            <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink"
                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Manage
                             </a>
@@ -62,7 +70,14 @@
                                    asp-action="ChangePassword">Password</a>
                             </div>
                         </li>
-                    @*}*@
+                    }
+                    else if (signInManager.IsSignedIn(User))
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Account" asp-action="ChangePassword" class="nav-link">Password</a>
+                        </li>
+                    @*  *@}
+
                 </ul>
                 <ul class="navbar-nav ml-auto">
                     @if (signInManager.IsSignedIn(User))
@@ -89,7 +104,7 @@
                 </ul>
             </div>
         </nav>
-        <div>
+        <div class="container-fluid">
             @RenderBody()
         </div>
         @if (IsSectionDefined("Scripts"))

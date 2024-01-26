@@ -1,10 +1,12 @@
 ﻿using EmployeeManagement.Models;
+using EmployeeManagement.Utilities;
 using EmployeeManagement.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Data;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -16,14 +18,17 @@ namespace EmployeeManagement.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly ILogger<AccountController> logger;
+        private readonly IAuthorizationService authorizationService;
 
         public AccountController(UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<AccountController> logger)
+            ILogger<AccountController> logger,
+            IAuthorizationService authorizationService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.logger = logger;
+            this.authorizationService = authorizationService;
         }
 
         [HttpGet]
@@ -237,6 +242,7 @@ namespace EmployeeManagement.Controllers
 
                 if (result.Succeeded)
                 {
+
                     var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
 
                     var confirmationLink = Url.Action("ConfirmEmail", "Account",
@@ -244,14 +250,37 @@ namespace EmployeeManagement.Controllers
 
                     logger.Log(LogLevel.Warning, confirmationLink);
 
-                    if (signInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                    string userEmail = model.Email;
+                    string Subject = "This is Ghazi From Employee Management";
+                    string Body = "<h1>Hello From Employee Management, I hope you are in good health.</h1>" +
+                "<h1>We are glad you are joining us and we are honored to give you a message that will confirm your account.</h1>" +
+                "<h2>" + confirmationLink + "</h2>";
+
+                    string InformMailSubject = "Another User has joined us";
+                    string InformMailBody = "<h1>" + userEmail + "</h1>" +
+                "<h1>has joined us and we send a confirmation email for him/her.</h1>";
+
+                    GmailEmailService sendConfirmEmail = new GmailEmailService(userEmail, Subject, Body, InformMailSubject, InformMailBody);
+
+                    if (signInManager.IsSignedIn(User) &&
+                         (await authorizationService.AuthorizeAsync(User, "SuperAdminOrAdminRolePolicy")).Succeeded)
                     {
                         return RedirectToAction("ListUsers", "Administration");
                     }
-
+                    var addToUserRole = await userManager.AddToRoleAsync(user, Roles.User);
+ 
                     ViewBag.ErrorTitle = "Registration successful";
-                    ViewBag.ErrorMessage = "Before you can Login, please confirm your " +
-                        "email, by clicking on the confirmation link we have emailed you";
+                    if (addToUserRole.Errors.Any())
+                    {
+                        ViewBag.ErrorMessage = "Before you can Login, please confirm your " +
+                            "email, by clicking on the confirmation link we have emailed you" +
+                            "Note: Please Ask The Support for adding You To Any Role";
+                    }
+                    else
+                    {
+                        ViewBag.ErrorMessage = "Before you can Login, please confirm your " +
+                            "email, by clicking on the confirmation link we have emailed you";
+                    }
                     return View("Error");
                 }
 
